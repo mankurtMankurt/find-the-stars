@@ -2,37 +2,99 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Uncle Billy Bums Finds the Stars</title>
     <style>
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
+            padding: 0;
             background-color: #222;
             font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            touch-action: none;
         }
-        canvas {
-            border: 2px solid #fff;
+        #gameCanvas {
+            max-width: 100%;
+            max-height: 80vh;
+        }
+        #controls {
+            display: none;
+            width: 100%;
+            max-width: 300px;
+            margin-top: 20px;
+        }
+        .control-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            user-select: none;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="800"></canvas>
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls">
+        <div class="control-row">
+            <div class="control-btn" id="upBtn">↑</div>
+        </div>
+        <div class="control-row">
+            <div class="control-btn" id="leftBtn">←</div>
+            <div class="control-btn" id="rightBtn">→</div>
+        </div>
+        <div class="control-row">
+            <div class="control-btn" id="downBtn">↓</div>
+        </div>
+    </div>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const controls = document.getElementById('controls');
         
-        const tileSize = 20;
-        const gridSize = 40;
+        let canvasWidth = 800;
+        let canvasHeight = 800;
+        let tileSize = 20;
+        let gridSize = 40;
+        
+        function resizeGame() {
+            const maxWidth = window.innerWidth;
+            const maxHeight = window.innerHeight * 0.8;
+            const scale = Math.min(maxWidth / canvasWidth, maxHeight / canvasHeight);
+            
+            canvas.style.width = `${canvasWidth * scale}px`;
+            canvas.style.height = `${canvasHeight * scale}px`;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                controls.style.display = 'block';
+            }
+        }
+        
+        window.addEventListener('resize', resizeGame);
+        resizeGame();
         
         let player = {
             x: Math.floor(gridSize / 2),
             y: Math.floor(gridSize / 2),
-            direction: 1,  // 1 for right, -1 for left
-            verticalDirection: 0,  // 1 for down, -1 for up, 0 for neutral
+            direction: 1,
+            verticalDirection: 0,
             danceFrame: 0,
             walkFrame: 0
         };
@@ -144,6 +206,7 @@
             // Draw score
             ctx.fillStyle = 'white';
             ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
             ctx.fillText(`Stars: ${collectedStars}/5`, 10, 30);
             
             // Draw game title
@@ -164,7 +227,7 @@
                 ctx.textAlign = 'center';
                 ctx.fillText('You Win!', canvas.width / 2, canvas.height / 2 - 100);
                 ctx.font = '20px Arial';
-                ctx.fillText('Press Space to play again', canvas.width / 2, canvas.height / 2 - 60);
+                ctx.fillText('Tap or press Space to play again', canvas.width / 2, canvas.height / 2 - 60);
                 
                 // Draw dancing Billy
                 ctx.save();
@@ -213,6 +276,42 @@
             requestAnimationFrame(gameLoop);
         }
         
+        function handleMove(direction) {
+            if (gameWon) {
+                resetGame();
+                return;
+            }
+            
+            switch(direction) {
+                case 'up':
+                    if (player.y > 0) {
+                        player.y--;
+                        player.verticalDirection = -1;
+                    }
+                    break;
+                case 'down':
+                    if (player.y < gridSize - 1) {
+                        player.y++;
+                        player.verticalDirection = 1;
+                    }
+                    break;
+                case 'left':
+                    if (player.x > 0) {
+                        player.x--;
+                        player.direction = -1;
+                        player.verticalDirection = 0;
+                    }
+                    break;
+                case 'right':
+                    if (player.x < gridSize - 1) {
+                        player.x++;
+                        player.direction = 1;
+                        player.verticalDirection = 0;
+                    }
+                    break;
+            }
+        }
+        
         document.addEventListener('keydown', (e) => {
             if (gameWon && e.code === 'Space') {
                 resetGame();
@@ -221,31 +320,29 @@
             
             switch(e.key) {
                 case 'ArrowUp':
-                    if (player.y > 0) {
-                        player.y--;
-                        player.verticalDirection = -1;
-                    }
+                    handleMove('up');
                     break;
                 case 'ArrowDown':
-                    if (player.y < gridSize - 1) {
-                        player.y++;
-                        player.verticalDirection = 1;
-                    }
+                    handleMove('down');
                     break;
                 case 'ArrowLeft':
-                    if (player.x > 0) {
-                        player.x--;
-                        player.direction = -1;
-                        player.verticalDirection = 0;
-                    }
+                    handleMove('left');
                     break;
                 case 'ArrowRight':
-                    if (player.x < gridSize - 1) {
-                        player.x++;
-                        player.direction = 1;
-                        player.verticalDirection = 0;
-                    }
+                    handleMove('right');
                     break;
+            }
+        });
+        
+        // Touch controls
+        document.getElementById('upBtn').addEventListener('touchstart', () => handleMove('up'));
+        document.getElementById('downBtn').addEventListener('touchstart', () => handleMove('down'));
+        document.getElementById('leftBtn').addEventListener('touchstart', () => handleMove('left'));
+        document.getElementById('rightBtn').addEventListener('touchstart', () => handleMove('right'));
+        
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameWon) {
+                resetGame();
             }
         });
         
